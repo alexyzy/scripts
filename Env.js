@@ -290,9 +290,13 @@ function Env(name, opts) {
         this.got(opts)
           .on('redirect', (resp, nextOpts) => {
             try {
-              const ck = resp.headers['set-cookie'].map(this.cktough.Cookie.parse).toString()
-              this.ckjar.setCookieSync(ck, null)
-              nextOpts.cookieJar = this.ckjar
+              if (resp.headers['set-cookie']) {
+                const ck = resp.headers['set-cookie'].map(this.cktough.Cookie.parse).toString()
+                if (ck) {
+                  this.ckjar.setCookieSync(ck, null)
+                }
+                nextOpts.cookieJar = this.ckjar
+              }
             } catch (e) {
               this.logErr(e)
             }
@@ -418,7 +422,7 @@ function Env(name, opts) {
             return { 'open-url': openUrl, 'media-url': mediaUrl }
           } else if (this.isSurge()) {
             let openUrl = rawopts.url || rawopts.openUrl || rawopts['open-url']
-            return { 'url': openUrl }
+            return { url: openUrl }
           }
         } else {
           return undefined
@@ -431,12 +435,14 @@ function Env(name, opts) {
           $notify(title, subt, desc, toEnvOpts(opts))
         }
       }
-      let logs = ['', '==============📣系统通知📣==============']
-      logs.push(title)
-      subt ? logs.push(subt) : ''
-      desc ? logs.push(desc) : ''
-      console.log(logs.join('\n'))
-      this.logs = this.logs.concat(logs)
+      if (!this.isMuteLog) {
+        let logs = ['', '==============📣系统通知📣==============']
+        logs.push(title)
+        subt ? logs.push(subt) : ''
+        desc ? logs.push(desc) : ''
+        console.log(logs.join('\n'))
+        this.logs = this.logs.concat(logs)
+      }
     }
 
     log(...logs) {
