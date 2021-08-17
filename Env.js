@@ -37,6 +37,7 @@ function Env(name, opts) {
       this.isMute = false
       this.isNeedRewrite = false
       this.logSeparator = '\n'
+      this.encoding = 'utf-8'
       this.startTime = new Date().getTime()
       Object.assign(this, opts)
       this.log('', `🔔${this.name}, 开始!`)
@@ -56,6 +57,10 @@ function Env(name, opts) {
 
     isLoon() {
       return 'undefined' !== typeof $loon
+    }
+
+    isShadowrocket() {
+      return 'undefined' !== typeof $rocket
     }
 
     toObj(str, defaultValue = null) {
@@ -286,6 +291,7 @@ function Env(name, opts) {
           (err) => callback(err)
         )
       } else if (this.isNode()) {
+        let iconv = require('iconv-lite')
         this.initGotEnv(opts)
         this.got(opts)
           .on('redirect', (resp, nextOpts) => {
@@ -304,18 +310,19 @@ function Env(name, opts) {
           })
           .then(
             (resp) => {
-              const { statusCode: status, statusCode, headers, body } = resp
-              callback(null, { status, statusCode, headers, body }, body)
+              const { statusCode: status, statusCode, headers, rawBody } = resp
+              callback(null, { status, statusCode, headers, rawBody }, iconv.decode(rawBody, this.encoding))
             },
             (err) => {
               const { message: error, response: resp } = err
-              callback(error, resp, resp && resp.body)
+              callback(error, resp, resp && iconv.decode(resp.rawBody, this.encoding))
             }
           )
       }
     }
 
     post(opts, callback = () => {}) {
+      const method = opts.method ? opts.method.toLocaleLowerCase() : 'post'
       // 如果指定了请求体, 但没指定`Content-Type`, 则自动生成
       if (opts.body && opts.headers && !opts.headers['Content-Type']) {
         opts.headers['Content-Type'] = 'application/x-www-form-urlencoded'
@@ -326,7 +333,7 @@ function Env(name, opts) {
           opts.headers = opts.headers || {}
           Object.assign(opts.headers, { 'X-Surge-Skip-Scripting': false })
         }
-        $httpClient.post(opts, (err, resp, body) => {
+        $httpClient[method](opts, (err, resp, body) => {
           if (!err && resp) {
             resp.body = body
             resp.statusCode = resp.status
@@ -334,7 +341,7 @@ function Env(name, opts) {
           callback(err, resp, body)
         })
       } else if (this.isQuanX()) {
-        opts.method = 'POST'
+        opts.method = method
         if (this.isNeedRewrite) {
           opts.opts = opts.opts || {}
           Object.assign(opts.opts, { hints: false })
@@ -347,16 +354,17 @@ function Env(name, opts) {
           (err) => callback(err)
         )
       } else if (this.isNode()) {
+        let iconv = require('iconv-lite')
         this.initGotEnv(opts)
         const { url, ..._opts } = opts
-        this.got.post(url, _opts).then(
+        this.got[method](url, _opts).then(
           (resp) => {
-            const { statusCode: status, statusCode, headers, body } = resp
-            callback(null, { status, statusCode, headers, body }, body)
+            const { statusCode: status, statusCode, headers, rawBody } = resp
+            callback(null, { status, statusCode, headers, rawBody }, iconv.decode(rawBody, this.encoding))
           },
           (err) => {
             const { message: error, response: resp } = err
-            callback(error, resp, resp && resp.body)
+            callback(error, resp, resp && iconv.decode(resp.rawBody, this.encoding))
           }
         )
       }
@@ -367,20 +375,22 @@ function Env(name, opts) {
      *    :$.time('yyyyMMddHHmmssS')
      *    y:年 M:月 d:日 q:季 H:时 m:分 s:秒 S:毫秒
      *    其中y可选0-4位占位符、S可选0-1位占位符，其余可选0-2位占位符
-     * @param {*} fmt 格式化参数
+     * @param {string} fmt 格式化参数
+     * @param {number} 可选: 根据指定时间戳返回格式化日期
      *
      */
-    time(fmt) {
+    time(fmt, ts = null) {
+      const date = ts ? new Date(ts) : new Date()
       let o = {
-        'M+': new Date().getMonth() + 1,
-        'd+': new Date().getDate(),
-        'H+': new Date().getHours(),
-        'm+': new Date().getMinutes(),
-        's+': new Date().getSeconds(),
-        'q+': Math.floor((new Date().getMonth() + 3) / 3),
-        'S': new Date().getMilliseconds()
+        'M+': date.getMonth() + 1,
+        'd+': date.getDate(),
+        'H+': date.getHours(),
+        'm+': date.getMinutes(),
+        's+': date.getSeconds(),
+        'q+': Math.floor((date.getMonth() + 3) / 3),
+        'S': date.getMilliseconds()
       }
-      if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (new Date().getFullYear() + '').substr(4 - RegExp.$1.length))
+      if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (date.getFullYear() + '').substr(4 - RegExp.$1.length))
       for (let k in o)
         if (new RegExp('(' + k + ')').test(fmt))
           fmt = fmt.replace(RegExp.$1, RegExp.$1.length == 1 ? o[k] : ('00' + o[k]).substr(('' + o[k]).length))
