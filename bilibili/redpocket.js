@@ -1,4 +1,4 @@
-const $ = new Env('B站直播')
+const $ = new Env('B站抽红包')
 $.bilibiliLive = 'chavy_cookie_bilibili'
 const cookie = $.getdata($.bilibiliLive)
 const csrf = cookie.match(/.*?bili_jct=(.*?);/)?.[1]
@@ -6,22 +6,13 @@ const csrf = cookie.match(/.*?bili_jct=(.*?);/)?.[1]
 $.desc = []
 
 !(async () => {
-  await sign()
-  if ($.sign?.code == 1011040) {
-    await getSignInfo()
-  }
-  await getMedalList()
-  for (let i = 0; i < $.medalList.length; i++) {
-    const roomId = $.medalList[i].roomId
-    $.desc.push(`执行粉丝牌任务(${i+1}/${$.medalList.length}): ${$.medalList[i].nickname}`)
-    for (let index = 0; index < 5; index++) {
-      await like(roomId)
-      await $.wait(1600)
-      await share(roomId)
-      await $.wait(1600)
-    }
-    await $.wait(1600)
-    await sendMsg(roomId)
+  await getRedPocketList()
+  for (let i = 0; i < $.list.length; i++) {
+    const redPocket = $.list[i]
+    await getLotteryInfoWeb(redPocket.roomId, redPocket.runame)
+    await redPocketDraw(redPocket)
+    await sendMsg(redPocket.roomId)
+    await $.wait(1000)
   }
   await notify()
 })()
@@ -30,33 +21,28 @@ $.desc = []
 
 function notify() {
   return new Promise((resolve) => {
-    $.subt = `签到:${$.sign.message}`
+    $.subt = `红包主播列表`
     $.msg($.name, $.subt, $.desc.join('\n'))
     resolve()
   })
 }
 
-function sign() {
+function getRedPocketList() {
   return new Promise((resolve) => {
     const url = {
-      url: 'https://api.live.bilibili.com/xlive/web-ucenter/v1/sign/DoSign',
+      url: 'https://api.live.bilibili.com/xlive/fuxi-interface/JuneRedPacket2022Controller/redPocketPlaying',
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
-        'origin': 'https://www.bilibili.com',
         'sec-fetch-site': 'same-site',
+        "Referer": "https://live.bilibili.com/",
         'cookie': cookie
       }
     }
     $.get(url, (err, resp, data) => {
       try {
-        $.sign = JSON.parse(data)
-        const result = JSON.parse(data)
-        if (result?.code == 0) {
-          $.desc.push(`本月累计: ${result.data.hadSignDays}/${result.data.allDays}次, 说明: ${result.data.text}`)
-        } else if (result?.code == -101) {
-          $.desc.push('Cookie已过期, 请重新获取Cookie')
-        }
+        const { _ts_rpc_return_ } = JSON.parse(data)
+        $.list = _ts_rpc_return_?.data?.list.filter(e => e.countDown > 10)
       } catch (e) {
         $.logErr(e, resp)
       } finally {
@@ -66,10 +52,10 @@ function sign() {
   })
 }
 
-function getSignInfo() {
+function getLotteryInfoWeb(roomid, runame) {
   return new Promise((resolve) => {
     const url = {
-      url: 'https://api.live.bilibili.com/sign/GetSignInfo',
+      url: 'https://api.live.bilibili.com/xlive/lottery-interface/v1/lottery/getLotteryInfoWeb?roomid=' + roomid,
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.4 Safari/605.1.15',
@@ -79,8 +65,10 @@ function getSignInfo() {
     $.get(url, (err, resp, data) => {
       try {
         const result = JSON.parse(data)
-        if (result && result.code == 0) {
-          $.desc.push(`本月累计: ${result.data.hadSignDays}/${result.data.allDays}次, 说明: ${result.data.text}`) 
+        if (result?.code == 0) {
+          const { popularity_red_pocket } = result?.data
+          const total_price = popularity_red_pocket?.[0]?.total_price / 1000 || 0
+          $.desc.push(`${runame}: 电池价值${total_price}元`) 
         }
       } catch (e) {
         $.logErr(e, resp)
@@ -91,28 +79,30 @@ function getSignInfo() {
   })
 }
 
-function getMedalList() {
+
+function redPocketDraw(redPocket) {
   return new Promise((resolve) => {
+    const body = {
+      ruid: redPocket.ruid,
+      room_id: redPocket.roomId,
+      lot_id: redPocket.lotId,
+      csrf: csrf,
+      csrf_token: csrf,
+    }
     const url = {
-      url: 'https://api.live.bilibili.com/xlive/app-ucenter/v1/fansMedal/panel?page_size=50&page=1',
+      url: 'https://api.live.bilibili.com/xlive/lottery-interface/v1/popularityRedPocket/RedPocketDraw',
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
         'origin': 'https://www.bilibili.com',
         'sec-fetch-site': 'same-site',
         'cookie': cookie
-      }
+      },
+      body: $.queryStr(body)
     }
-    $.get(url, (err, resp, data) => {
+    $.post(url, (err, resp, data) => {
       try {
-        const res = JSON.parse(data)
-        const items = [...res.data.list, ...res.data.special_list]
-        $.medalList = items.filter(e => e?.medal?.level < 21).map((e) => {
-          return {
-            roomId: e?.room_info?.room_id,
-            nickname: e?.medal?.medal_name,
-          }
-        })
+        // nothing
       } catch (e) {
         $.logErr(e, resp)
       } finally {
@@ -126,7 +116,7 @@ function sendMsg(roomId) {
   return new Promise((resolve) => {
     const body = {
       bubble: 0,
-      msg: '打卡',
+      msg: '老板大气！点点红包抽礼物！',
       color: 16777215,
       mode: 2,
       fontsize: 25,
@@ -142,67 +132,6 @@ function sendMsg(roomId) {
           'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
         'cookie': cookie,
         'content-type': 'multipart/form-data'
-      },
-      body: $.queryStr(body)
-    }
-
-    $.post(url, (err, resp, data) => {
-      try {
-        $.log('sendMsg: ', roomId)
-      } catch (e) {
-        $.logErr(e, resp)
-      } finally {
-        resolve()
-      }
-    })
-  })
-}
-
-function like(roomId) {
-  return new Promise((resolve) => {
-    const body = {
-      roomid: roomId,
-      csrf: csrf
-    }
-    const url = {
-      url: 'https://api.live.bilibili.com/xlive/web-ucenter/v1/interact/likeInteract',
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
-        'origin': 'https://www.bilibili.com',
-        'sec-fetch-site': 'same-site',
-        'cookie': cookie
-      },
-      body: $.queryStr(body)
-    }
-    $.post(url, (err, resp, data) => {
-      try {
-        $.log('sendMsg: ', roomId)
-      } catch (e) {
-        $.logErr(e, resp)
-      } finally {
-        resolve()
-      }
-    })
-  })
-}
-
-function share(roomId) {
-  return new Promise((resolve) => {
-    const body = {
-      roomid: roomId,
-      csrf: csrf,
-      interact_type: 3
-    }
-    const url = {
-      url: 'https://api.live.bilibili.com/xlive/app-room/v1/index/TrigerInteract',
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36',
-        'cookie': cookie,
-        'content-type': 'multipart/form-data',
-        'sec-fetch-site': 'same-site',
-        'origin': 'https://www.bilibili.com'
       },
       body: $.queryStr(body)
     }

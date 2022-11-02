@@ -278,7 +278,8 @@ function Env(name, opts) {
         $httpClient.get(opts, (err, resp, body) => {
           if (!err && resp) {
             resp.body = body
-            resp.statusCode = resp.status
+            resp.statusCode = resp.status ? resp.status : resp.statusCode
+            resp.status = resp.statusCode
           }
           callback(err, resp, body)
         })
@@ -292,7 +293,7 @@ function Env(name, opts) {
             const { statusCode: status, statusCode, headers, body } = resp
             callback(null, { status, statusCode, headers, body }, body)
           },
-          (err) => callback(err)
+          (err) => callback((err && err.error) || 'UndefinedError')
         )
       } else if (this.isNode()) {
         let iconv = require('iconv-lite')
@@ -315,7 +316,8 @@ function Env(name, opts) {
           .then(
             (resp) => {
               const { statusCode: status, statusCode, headers, rawBody } = resp
-              callback(null, { status, statusCode, headers, rawBody }, iconv.decode(rawBody, this.encoding))
+              const body = iconv.decode(rawBody, this.encoding)
+              callback(null, { status, statusCode, headers, rawBody, body }, body)
             },
             (err) => {
               const { message: error, response: resp } = err
@@ -340,7 +342,8 @@ function Env(name, opts) {
         $httpClient[method](opts, (err, resp, body) => {
           if (!err && resp) {
             resp.body = body
-            resp.statusCode = resp.status
+            resp.statusCode = resp.status ? resp.status : resp.statusCode
+            resp.status = resp.statusCode
           }
           callback(err, resp, body)
         })
@@ -355,7 +358,7 @@ function Env(name, opts) {
             const { statusCode: status, statusCode, headers, body } = resp
             callback(null, { status, statusCode, headers, body }, body)
           },
-          (err) => callback(err)
+          (err) => callback((err && err.error) || 'UndefinedError')
         )
       } else if (this.isNode()) {
         let iconv = require('iconv-lite')
@@ -364,7 +367,8 @@ function Env(name, opts) {
         this.got[method](url, _opts).then(
           (resp) => {
             const { statusCode: status, statusCode, headers, rawBody } = resp
-            callback(null, { status, statusCode, headers, rawBody }, iconv.decode(rawBody, this.encoding))
+            const body = iconv.decode(rawBody, this.encoding)
+            callback(null, { status, statusCode, headers, rawBody, body }, body)
           },
           (err) => {
             const { message: error, response: resp } = err
@@ -399,6 +403,28 @@ function Env(name, opts) {
         if (new RegExp('(' + k + ')').test(fmt))
           fmt = fmt.replace(RegExp.$1, RegExp.$1.length == 1 ? o[k] : ('00' + o[k]).substr(('' + o[k]).length))
       return fmt
+    }
+
+    /**
+     * 
+     * @param {Object} options 
+     * @returns {String} 将 Object 对象 转换成 queryStr: key=val&name=senku
+     */
+    queryStr(options) {
+      let queryString = ''
+
+      for (const key in options) {
+        let value = options[key]
+        if (value != null && value !== '') {
+          if (typeof value === 'object') {
+            value = JSON.stringify(value)
+          }
+          queryString += `${key}=${value}&`
+        }
+      }
+      queryString = queryString.substring(0, queryString.length - 1)
+    
+      return queryString
     }
 
     /**
@@ -487,6 +513,8 @@ function Env(name, opts) {
       this.log()
       if (this.isSurge() || this.isQuanX() || this.isLoon()) {
         $done(val)
+      } else if (this.isNode()) {
+        process.exit(1)
       }
     }
   })(name, opts)
