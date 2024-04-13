@@ -1,103 +1,68 @@
 # 掌上飞车
 
 > 代码已同时兼容 Surge & QuanX, 使用同一份签到脚本即可
-> 感谢[@danchaw](https://github.com/danchaw) PR
-## 配置 (Surge)
 
+> 感谢[@danchaw](https://github.com/danchaw) PR、[@chiupam](https://github.com/chiupam) 修改签到脚本，感谢[@chiupam](https://github.com/chiupam) PR购物脚本、寻宝脚本
+
+> 代码已适配最新版掌上飞车APP，旧版本APP无法继续签到，请及时更新
+
+## 配置 (Surge)
 ```properties
 [MITM]
-mwegame.qq.com
+hostname = %APPEDN% comm.ams.game.qq.com, bang.qq.com
 
 [Script]
-http-request ^https:\/\/mwegame\.qq\.com\/ams\/sign\/doSign\/month script-path=https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.js
-cron "10 0 0 * * *" script-path=https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.js
+掌上飞车Cookie = type=http-request, pattern=^https?://(comm\.ams\.game\.qq\.com/ams/ame/amesvr*|bang\.qq\.com/app/speed/mall/main2\?*), requires-body=true, max-size=-1, script-path=https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.js, script-update-interval=0, timeout=5
+掌飞寻宝Cookie = type=http-request, pattern=^https?://bang\.qq\.com/app/speed/treasure/index\?*, requires-body=true, max-size=-1, script-path=https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.treasure.js, script-update-interval=0, timeout=60
+掌上飞车 =type=cron, cronexp="0 10 0,21 * * *", wake-system=1, script-path=https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.js, script-update-interval=0, timeout=60
+掌飞寻宝 =type=cron, cronexp="0 */11 17 * * *", wake-system=1, script-path=https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.treasure.js, script-update-interval=0, timeout=60
+```
+
+## 配置 (Loon)
+```properties
+[Mitm]
+hostname = comm.ams.game.qq.com, bang.qq.com
+
+[Script]
+http-request ^https?://(comm\.ams\.game\.qq\.com/ams/ame/amesvr*|bang\.qq\.com/app/speed/mall/main2\?*) script-path=https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.js, requires-body=true, timeout=10, tag=掌上飞车Cookie
+http-request ^https?://bang\.qq\.com/app/speed/treasure/index\?* script-path=https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.treasure.js, requires-body=true, timeout=60, tag=掌飞寻宝Cookie
+
+cron "0 10 0,21 * * *" script-path=https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.js, tag=掌上飞车
+cron "0 */11 17 * * *" script-path=https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.treasure.js, tag=掌飞寻宝
 ```
 
 ## 配置 (QuanX)
-
 ```properties
 [MITM]
-mwegame.qq.com
+hostname = comm.ams.game.qq.com, bang.qq.com
 
 [rewrite_local]
-
-# [商店版]
-^https:\/\/mwegame\.qq\.com\/ams\/sign\/doSign\/month url script-request-header zsfc.js
-
-# [TestFlight]
-^https:\/\/mwegame\.qq\.com\/ams\/sign\/doSign\/month url script-request-header https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.js
+^https?://(comm\.ams\.game\.qq\.com/ams/ame/amesvr*|bang\.qq\.com/app/speed/mall/main2\?*) url script-request-body https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.js
+^https?://bang\.qq\.com/app/speed/treasure/index\?* url script-request-body https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.treasure.js
 
 [task_local]
-
-# [商店版]
-1 0 * * * zsfc.js
-
-# [TestFlight]
-1 0 * * * https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.js
+0 10 0,21 * * * https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.js, tag=掌上飞车, enabled=true
+0 */11 17 * * * https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.treasure.js, tag=掌飞寻宝, enabled=true
 ```
 
 ## 说明
 
-1. 先把`mwegame.qq.com`加到`[MITM]`
+1. 先把`comm.ams.game.qq.com, bang.qq.com`加到`[MITM]`
 2. 再配置重写规则:
-   - Surge: 把两条远程脚本放到`[Script]`
-   - QuanX: 把`nio.cookie.js`和`nio.js`传到`On My iPhone - Quantumult X - Scripts` (传到 iCloud 相同目录也可, 注意要打开 quanx 的 iCloud 开关)
-3. 打开 APP[掌上飞车](https://apps.apple.com/cn/app/%E6%8E%8C%E4%B8%8A%E9%A3%9E%E8%BD%A6/id1116903233) 然后手动签到 1 次, 系统提示: `首次写入xxxUrl成功🎉,首次写入xxxCookie成功🎉`
-4. 最后就可以把第 1 条脚本注释掉了
-5. 运行一次脚本, 如果提示重复签到, 那就算成功了!
+   - Surge: 把三条远程脚本放到`[Script]`
+   - Loon: 把三条远程脚本放到`[Script]`
+   - QuanX: 把远程重写脚本放到`[rewrite_local]`，再把远程定时任务放到`[task_local]`
+3. 打开[掌上飞车APP](https://apps.apple.com/cn/app/%E6%8E%8C%E4%B8%8A%E9%A3%9E%E8%BD%A6/id1116903233)，点击咨询栏的签到（每日福利），系统提示`✅ 获取签到数据成功！`即可
+4. 打开[掌上飞车APP](https://apps.apple.com/cn/app/%E6%8E%8C%E4%B8%8A%E9%A3%9E%E8%BD%A6/id1116903233)，点击下方游戏栏，然后点击掌飞商城，系统提示`✅ 获取商城数据成功！`即可
+5. 打开[掌上飞车APP](https://apps.apple.com/cn/app/%E6%8E%8C%E4%B8%8A%E9%A3%9E%E8%BD%A6/id1116903233)，点击下方游戏栏，然后点击每日寻宝，系统提示`✅ 获取寻宝数据成功！`即可
+6. 如果使用了[掌飞购物](https://raw.githubusercontent.com/chavyleung/scripts/master/zsfc/zsfc.shop.js)脚本的，请继续订阅[chiupam boxjs仓库](https://raw.githubusercontent.com/chiupam/surge/main/boxjs/chiupam.boxjs.json)并在应用中设置掌飞商城所需购买的游戏道具名称
 
-> 第 1 条脚本是用来获取 cookie 的, 用浏览器访问一次获取 cookie 成功后就可以删掉或注释掉了, 但请确保在`登录成功`后再获取 cookie.
-
-> 第 2 条脚本是签到脚本, 每天`00:00:10`执行一次.
-
-## 常见问题
-
-1. 无法写入 Cookie
-
-   - 检查 Surge 系统通知权限放开了没
-   - 如果你用的是 Safari, 请尝试在浏览地址栏`手动输入网址`(不要用复制粘贴)
-
-2. 写入 Cookie 成功, 但签到不成功
-
-   - 看看是不是在登录前就写入 Cookie 了
-   - 如果是，请确保在登录成功后，再尝试写入 Cookie
-
-3. 为什么有时成功有时失败
-
-   - 很正常，网络问题，哪怕你是手工签到也可能失败（凌晨签到容易拥堵就容易失败）
-   - 暂时不考虑代码级的重试机制，但咱有配置级的（暴力美学）：
-
-   - `Surge`配置:
-
-     ```properties
-     # 没有什么是一顿饭解决不了的:
-     cron "10 0 0 * * *" script-path=xxx.js # 每天00:00:10执行一次
-     # 如果有，那就两顿:
-     cron "20 0 0 * * *" script-path=xxx.js # 每天00:00:20执行一次
-     # 实在不行，三顿也能接受:
-     cron "30 0 0 * * *" script-path=xxx.js # 每天00:00:30执行一次
-
-     # 再粗暴点，直接:
-     cron "* */60 * * * *" script-path=xxx.js # 每60分执行一次
-     ```
-
-   - `QuanX`配置:
-
-     ```properties
-     [task_local]
-     1 0 * * * xxx.js # 每天00:01执行一次
-     2 0 * * * xxx.js # 每天00:02执行一次
-     3 0 * * * xxx.js # 每天00:03执行一次
-
-     */60 * * * * xxx.js # 每60分执行一次
-     ```
+## 反馈bug
+如果出现bug，请提交issue到[chiupam仓库](https://github.com/chiupam/surge/issues/new)
 
 ## 感谢
-
 [@NobyDa](https://github.com/NobyDa)
-
 [@lhie1](https://github.com/lhie1)
-
 [@ConnersHua](https://github.com/ConnersHua)
-
 [@danchaw](https://github.com/danchaw)
+[@chiupam](https://github.com/chiupam)
