@@ -6,9 +6,12 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-  <link rel="Bookmark" href="https://raw.githubusercontent.com/chavyleung/scripts/master/BOXJS.png" />
-  <link rel="shortcut icon" href="https://raw.githubusercontent.com/chavyleung/scripts/master/BOXJS.png" />
-  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/chavyleung/scripts/master/BOXJS.png" />
+  <link rel="Bookmark" href="https://raw.githubusercontent.com/chavyleung/scripts/master/box/icons/BoxJs.light.png" media="(prefers-color-scheme: light)" />
+  <link rel="shortcut icon" href="https://raw.githubusercontent.com/chavyleung/scripts/master/box/icons/BoxJs.light.png" media="(prefers-color-scheme: light)" />
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/chavyleung/scripts/master/box/icons/BoxJs.light.png" media="(prefers-color-scheme: light)" />
+  <link rel="Bookmark" href="https://raw.githubusercontent.com/chavyleung/scripts/master/box/icons/BoxJs.dark.png" media="(prefers-color-scheme: dark)" />
+  <link rel="shortcut icon" href="https://raw.githubusercontent.com/chavyleung/scripts/master/box/icons/BoxJs.dark.png" media="(prefers-color-scheme: dark)" />
+  <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/chavyleung/scripts/master/box/icons/BoxJs.dark.png" media="(prefers-color-scheme: dark)" />
   <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/@mdi/font@5.x/css/materialdesignicons.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/vuetify@2.4.x/dist/vuetify.min.css" rel="stylesheet" />
@@ -369,22 +372,6 @@
             <v-avatar size="32"><v-icon>mdi-format-align-bottom</v-icon></v-avatar>
           </v-btn>
         </v-list-item>
-        <!-- <v-list-item class="mt-4">
-              <v-switch
-                dense
-                class="mt-0"
-                label="透明主题"
-                v-model="box.usercfgs.isTransparent"
-                @change="saveUserCfgs"
-                :persistent-hint="true"
-                hint="使界面更多元素透明 (beta)"
-              >
-              </v-switch>
-              <v-spacer></v-spacer>
-              <v-btn fab small text>
-                <v-avatar size="32"><v-icon>mdi-invert-colors</v-icon></v-avatar>
-              </v-btn>
-            </v-list-item> -->
         <v-list-item class="mt-4">
           <v-switch
                   :hint="$t('prefs.muteModeDesc')"
@@ -567,7 +554,8 @@
       >
         <v-row no-gutters v-show="!isHidedAppIcons" class="align-self-start" id="appList">
           <v-col cols="3" md="2" v-for="(app, appIdx) in favApps" :key="app.id" class="d-flex justify-space-around">
-            <div class="ma-2 appicon" @click="switchAppView(app.id)">
+            <div class="ma-2 appicon" style="position: relative;" @click="switchAppView(app.id)">
+              <v-icon style="position: absolute; right: -10px; top: -10px; z-index: 100;" v-if="box.usercfgs.isEditFavApp" @click="favApp(app.id)">mdi-close-circle-outline</v-icon>
               <v-card v-if="isDarkMode" style="border-radius: 12px">
                 <v-img style="border-radius: 12px" :aspect-ratio="1" width="54" height="54" contain v-ripple :src="app.icon"></v-img>
               </v-card>
@@ -651,7 +639,6 @@
                       </v-btn>
                     </v-list-item-action>
                   </v-list-item>
-                  <!-- <v-divider inset v-if="sub.apps.length !== appIdx + 1"></v-divider> -->
                 </template>
               </v-list>
             </v-expansion-panel-content>
@@ -758,7 +745,6 @@
                   </v-menu>
                 </v-list-item-action>
               </v-list-item>
-              <!-- <v-divider inset v-if="appSubs.length !== subIdx + 1"></v-divider> -->
             </template>
           </v-list>
         </v-card>
@@ -996,9 +982,9 @@
           <v-card-subtitle>
             <p v-if="curapp.desc" v-text="curapp.desc" class="text-pre-wrap"></p>
             <p
-                    v-for="(desc, descIdx) in curapp.descs"
-                    v-text="desc"
-                    :class="curapp.descs.length === descIdx + 1 ? 'text-pre-wrap' : 'mb-0 text-pre-wrap'"
+              v-for="(desc, descIdx) in curapp.descs"
+              v-text="desc"
+              :class="curapp.descs.length === descIdx + 1 ? 'text-pre-wrap' : 'mb-0 text-pre-wrap'"
             ></p>
             <p v-if="curapp.desc_html" v-html="curapp.desc_html"></p>
             <div v-for="(desc_html, desc_htmlIdx) in curapp.descs_html" v-html="desc_html"></div>
@@ -1214,7 +1200,7 @@
                 <v-btn icon v-on="on"><v-icon>mdi-dots-vertical</v-icon></v-btn>
               </template>
               <v-list dense>
-                <v-dialog v-model="ui.modSessionDialog.show">
+                <v-dialog v-model="ui.modSessionDialog[session.id]" :key="`dialog-${session.id}`">
                   <template #activator="{ on }">
                     <v-list-item v-on="on">
                       <v-list-item-title>{{ $t('base.cmd.mod') }}</v-list-item-title>
@@ -1237,7 +1223,7 @@
                     <v-divider></v-divider>
                     <v-card-actions>
                       <v-spacer></v-spacer>
-                      <v-btn text small color="grey" text @click="ui.modSessionDialog.show = false"
+                      <v-btn text small color="grey" text @click="ui.modSessionDialog[session.id] = false"
                       >{{ $t('base.dialog.close') }}</v-btn
                       >
                       <v-btn text small color="primary" text @click="updateAppSession(session)" :loading="isLoading"
@@ -1263,7 +1249,8 @@
           <v-card-actions>
             <v-btn small text color="grey">{{dayjs(session.createTime).format('YYYY-MM-DD HH:mm:ss')}}</v-btn>
             <v-spacer></v-spacer>
-            <v-btn small text color="primary" @click="useAppSession(session.id)">{{ $t('base.dialog.apply') }}</v-btn>
+            <v-btn small text color="primary" @click="useAppSession(session.id)" >{{ $t('base.dialog.use') }}</v-btn>
+            <v-btn small text color="primary" @click="linkAppSession(session.id)" >{{ $t('base.dialog.link') }}</v-btn>
           </v-card-actions>
         </v-card>
       </v-container>
@@ -1294,17 +1281,22 @@
           </v-subheader>
         </v-card>
       </v-container>
-      <!-- 计算器 -->
-      <v-container fluid v-else-if="view === 'calculator'">
-        <h3>Surge 费用计算器(open AI 编写)</h3>
-        <div class="text-body-2 grey--text text--darken-2">仅供参考,最终价格以实际为准</div>
-        <div class="mt-4">
-          <v-text-field v-model="purchaseDate" label="购买日期" type="date"></v-text-field>
-          <v-select v-model="licenseType" :items="licenseTypes" label="设备授权数"></v-select>
-          <v-btn @click="calculateCost">计算费用</v-btn>
-          <p class="mt-2">费用：{{ cost.toFixed(2) }}</p>
-        </div>
-      </v-container>
+      <v-fab-transition>
+        <v-btn
+          v-show="view === 'app' && !!curapp && curapp.settings && curapp.settings.length > 0"
+          fab
+          fixed
+          bottom
+          right
+          left
+          small
+          color="primary"
+          style="margin: 0 auto 60px auto; z-index: 5"
+          @click="saveAppSettings"
+        >
+          <v-icon>mdi-content-save</v-icon>
+        </v-btn>
+      </v-fab-transition>
     </v-main>
     <!-- 底部 -->
     <v-bottom-navigation ref="naviBar" v-bind="naviBarBind" v-touch="{ down: () => isHidedNaviBottom = true }">
@@ -1354,14 +1346,14 @@
             <v-avatar><img :src="box.syscfgs.boxjs.icons[iconThemeIdx]" /></v-avatar>
           </v-btn>
         </template>
+        <v-btn dark v-if="view === ''" fab small color="blue" @click="box.usercfgs.isEditFavApp = !box.usercfgs.isEditFavApp">
+          <v-icon>mdi-delete-circle-outline</v-icon>
+        </v-btn>
         <v-btn dark v-if="!box.usercfgs.isHideHelp" fab small color="grey" @click="open('https://chavyleung.gitbook.io/boxjs')">
           <v-icon>mdi-help</v-icon>
         </v-btn>
         <v-btn dark v-if="!box.usercfgs.isHideHelp" fab small color="purple" @click="ui.versionSheet.show = true">
           <v-icon>mdi-new-box</v-icon>
-        </v-btn>
-        <v-btn dark v-if="!box.usercfgs.isCalculator" fab small color="yellow" @click="switchView('calculator')">
-          <v-icon>mdi-calculator-variant-outline</v-icon>
         </v-btn>
         <v-btn dark fab small color="pink" @click="box.usercfgs.isLeftBoxIcon = !box.usercfgs.isLeftBoxIcon">
           <v-icon> {{box.usercfgs.isLeftBoxIcon ? 'mdi-format-horizontal-align-right' : 'mdi-format-horizontal-align-left'}} </v-icon>
@@ -1476,7 +1468,9 @@
               save: 'Save',
               view: 'View',
               close: 'Close',
-              ok: 'OK'
+              ok: 'OK',
+              use: 'Use',
+              link: 'Link'
             },
             sort: {
               up: 'Up',
@@ -1639,7 +1633,9 @@
               apply: '应用',
               save: '保存',
               close: '关闭',
-              ok: '好'
+              ok: '好',
+              use: '使用',
+              link: '关联'
             },
             sort: {
               up: '上移',
@@ -1833,23 +1829,19 @@
           exeScriptSheet: { show: false, resp: null },
           naviDrawer: { show: false },
           reloadDialog: { show: false },
-          modSessionDialog: { show: false },
+          modSessionDialog: {},
           editProfileDialog: { show: false },
           impGlobalBakDialog: { show: false, impval: '' },
           impAppDatasDialog: { show: false, impval: '' },
           addAppSubDialog: { show: false, url: '' },
           installConfirmDialog: { show: false, title: '安装确认', message: '是否自动安装外部资源?' },
           defaultIcons: [
-            'https://raw.githubusercontent.com/Orz-3/mini/master/appstore.png',
-            'https://raw.githubusercontent.com/Orz-3/task/master/appstore.png'
+            'https://raw.githubusercontent.com/Orz-3/mini/master/Alpha/appstore.png',
+            'https://raw.githubusercontent.com/Orz-3/mini/master/Color/appstore.png'
           ]
         },
         boxServerData: null,
         box: null,
-        purchaseDate: null,
-        cost: 0,
-        licenseTypes: ["1 Device License", "3 Devices License", "5 Devices License"],
-        licenseType: ''
       }
     },
     computed: {
@@ -2278,14 +2270,6 @@
           const appId = decodeURIComponent(decodeURIComponent(this.subview))
           const app = this.apps.find((app) => app.id === appId)
           this.loadAppDataInfo(app)
-          if(app.settings){
-            app.settings = app.settings.map(setting=>{
-              if(setting.items && typeof setting.items === "string"){
-                return {...setting,items:this.box.datas[setting.items] || []};
-              }
-              return {...setting}
-            })
-          }
           return app
         }
       },
@@ -2508,6 +2492,7 @@
           const moveItem = favApps[oldIdx]
           favApps.splice(oldIdx, 1)
           favApps.splice(newIdx, 0, moveItem)
+          _this.box.usercfgs.favapps = favApps.filter(e => !!e)
         }
       })
 
@@ -2735,26 +2720,7 @@
       // 加载应用数据
       loadAppDataInfo(app) {
         if (app.isLoaded) return
-        // 加载应用设置
-        if (app.settings) {
-          app.settings.forEach((setting) => {
-            const key = setting.id
-            const datval = this.datas[key]
-            if (setting.type === 'boolean') {
-              setting.val = _.isEmpty(datval) ? setting.val : (datval === 'true' || datval === true)
-            } else if (setting.type === 'int') {
-              setting.val = datval * 1 || setting.val
-            } else if (setting.type === 'checkboxes') {
-              if (!_.isEmpty(datval)) {
-                setting.val = datval ? datval.split(',') : []
-              } else {
-                setting.val = Array.isArray(setting.val) ? setting.val : setting.val.split(',')
-              }
-            } else {
-              setting.val = datval || setting.val
-            }
-          })
-        }
+
         // 加载当前会话数据
         if (app.keys) {
           app.datas = []
@@ -2855,13 +2821,15 @@
         })
         const key = 'chavy_boxjs_sessions'
         const val = JSON.stringify(this.box.sessions)
-        axios
-                .post('/api/save', [{ key, val }])
-                .then((resp) => {
-                  delete resp.data.usercfgs
-                  Object.assign(this.box, resp.data)
-                })
-                .finally(() => (this.ui.modSessionDialog.show = false))
+        axios.post('/api/save', [{ key, val }])
+          .then((resp) => {
+            delete resp.data.usercfgs
+            Object.assign(this.box, resp.data)
+          })
+          .finally(() => {
+            // 修改这里，关闭当前会话的对话框
+            this.$set(this.ui.modSessionDialog, session.id, false)
+          })
       },
       // 删除应用会话
       delAppSession(sessionId) {
@@ -2877,20 +2845,53 @@
       },
       // 使用应用会话
       useAppSession(sessionId) {
-        const sessions = this.box.sessions
-        const session = sessions.find((session) => session.id === sessionId)
-        this.box.curSessions[session.appId] = sessionId
+        const sessions = JSON.parse(JSON.stringify(this.box.sessions));
+        const session = sessions.find(
+          (session) => session.id === sessionId
+        );
 
-        const key = 'chavy_boxjs_cur_sessions'
-        const val = JSON.stringify(this.box.curSessions)
-        const curSessions = [{ key, val }]
-        const datas = [...session.datas, ...curSessions]
+        const datas = session.datas;
+        delete this.box.curSessions[session.appId];
+        const key = 'chavy_boxjs_cur_sessions';
+        const val = JSON.stringify({});
+        datas.push({ key, val });
 
-        this.clearAppDatas()
+        if (session) {
+          axios
+            .post(`/api/save?appid=${this.curapp.id}`, datas)
+            .then((resp) => {
+              if (this.curapp.id === 'BoxSetting') {
+                this.isSaveUserCfgs = false;
+              } else {
+                delete resp.data.usercfgs;
+              }
+              Object.assign(this.box, resp.data);
+
+              if (this.curapp.id === 'BoxSetting') {
+                this.setHttpBackend();
+              }
+            });
+        }
+      },
+      // 关联应用会话
+      linkAppSession(sessionId) {
+        const sessions = JSON.parse(JSON.stringify(this.box.sessions));
+        const session = sessions.find(
+          (session) => session.id === sessionId
+        );
+
+        const datas = session.datas;
+        // 记录当前应用正在使用的会话ID
+        this.box.curSessions[session.appId] = sessionId;
+        const key = 'chavy_boxjs_cur_sessions';
+        const val = JSON.stringify(this.box.curSessions);
+        datas.push({ key, val });
+
+        // 发送单个合并请求，避免竞争条件
         axios.post('/api/save', datas).then((resp) => {
-          delete resp.data.usercfgs
-          Object.assign(this.box, resp.data)
-        })
+          delete resp.data.usercfgs;
+          Object.assign(this.box, resp.data);
+        });
       },
       // 复制应用数据为对象数据
       copyData(curdata) {
@@ -3126,42 +3127,6 @@
             axios.defaults.baseURL = ''
           }
         }
-      },
-      calculateUpgradePrice(purchaseDate, licenseType) {
-        const licensePrices = {
-          '1 Device License': 34.99,
-          '3 Devices License': 48.99,
-          '5 Devices License': 69.99,
-        }
-
-        const upgradePrice = licensePrices[licenseType]
-        if (!upgradePrice) {
-          throw new Error(`Invalid license type: ${licenseType}`)
-        }
-
-        const discountEndDate = dayjs('2022-04-15')
-        const freeDate = dayjs('2022-10-15')
-
-        if (dayjs(purchaseDate).isBefore(discountEndDate)) {
-          return licensePrices[licenseType]
-        }
-
-        const equivalentPurchaseDate = dayjs(purchaseDate)
-
-        const diffDays = freeDate.diff(discountEndDate, 'day')
-        const daysFromDiscountEndDate = equivalentPurchaseDate.diff(discountEndDate, 'day')
-
-        if (daysFromDiscountEndDate >= diffDays) {
-          // After free upgrade date
-          return 0
-        } else {
-          const ratio = 1 - daysFromDiscountEndDate / diffDays
-          const price = Math.ceil(ratio * upgradePrice * 100) / 100 - 0.01
-          return price < 1.99 ? 1.99 : price
-        }
-      },
-      calculateCost() {
-        this.cost = this.calculateUpgradePrice(this.purchaseDate, this.licenseType)
       },
     }
   })

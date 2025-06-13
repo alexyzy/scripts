@@ -40,8 +40,9 @@ function sign(headers) {
 
 function draw(headers) {
   return new Promise((resolve) => {
+    const index = Math.floor(Math.random() * 10)
     const url = {
-      url: hostApi + '/roulette_draw/draw_results',
+      url: hostApi + '/roulette_draw/draw_results?click_num=' + index,
       headers,
     }
     $.post(url, (err, resp, data) => {
